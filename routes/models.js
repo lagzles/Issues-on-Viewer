@@ -78,123 +78,83 @@ router.delete('/api/models/:urn', async (req, res) => {
     }
 });
 
-
-
-router.get('/api/composite-designs', (req, res) => {
-    if (!fs.existsSync(csvPath)) {
-        return res.json([]);
-    }
-
-    try {
-        const csvContent = fs.readFileSync(csvPath, 'utf8');
-        const lines = csvContent.trim().split('\n');
-        const header = lines[0].split(',');
-
-        const designsMap = {};
-
-        lines.slice(1).forEach(line => {
-            const parts = line.split(',');
-
-            const id = parts[0];
-            const name = parts[1].replace(/^"|"$/g, '');
-            const urn = parts[2];
-            const isMainModel = parts[3] === 'true';
-            const x = parseFloat(parts[4]);
-            const y = parseFloat(parts[5]);
-            const z = parseFloat(parts[6]);
-            const rotation = parseFloat(parts[7]);
-            const refId = parts[8] || null;
-
-            const designId = isMainModel ? id : refId;
-            if (!designsMap[designId]) {
-                designsMap[designId] = {
-                    id: designId,
-                    name,
-                    models: []
-                };
+router.get('/api/issues', async(req, res) => {
+    try{
+        let issues = [
+            {
+                id: 1,
+                name: 'Issue 1 - la primeira',
+                description: 'This is the first issue.',
+                status: 'Open',
+                severity: 'High',
+                location: 'Section A',
+                createdAt: new Date('2023-10-01T10:00:00Z'),
+                updatedAt: new Date('2023-10-02T12:00:00Z'),
+                dueDate: new Date('2023-10-10T15:00:00Z'),
+                assignee: 'John Doe',
+            },
+            {
+                id: 2,
+                name: 'Issue 2',
+                description: 'This is the second issue.',
+                status: 'Closed',
+                severity: 'Medium',
+                location: 'Section B',
+                createdAt: new Date('2023-10-03T11:00:00Z'),
+                updatedAt: new Date('2023-10-04T13:00:00Z'),
+                dueDate: new Date('2023-10-12T16:00:00Z'),
+                assignee: 'Jane Smith',
+            },
+            {
+                id: 3,
+                name: 'Issue 3',
+                description: 'This is the third issue.',
+                status: 'In Progress',
+                severity: 'Low',
+                location: 'Section C',
+                createdAt: new Date('2023-10-05T14:00:00Z'),
+                updatedAt: new Date('2023-10-06T17:00:00Z'),
+                dueDate: new Date('2023-10-15T18:00:00Z'),
+                assignee: 'Alice Johnson',
+            },
+            {
+                id: 4,
+                name: 'Issue 4',
+                description: 'This is the fourth issue.',
+                status: 'Open',
+                severity: 'Critical',
+                location: 'Section D',
+                createdAt: new Date('2023-10-07T09:00:00Z'),
+                updatedAt: new Date('2023-10-08T10:00:00Z'),
+                dueDate: new Date('2023-10-20T11:00:00Z'),
+                assignee: 'Bob Brown',
+            },
+            {
+                id: 5,
+                name: 'Issue 5',
+                description: 'This is the fifth issue.',
+                status: 'Resolved',
+                severity: 'High',
+                location: 'Section E',
+                createdAt: new Date('2023-10-09T08:00:00Z'),
+                updatedAt: new Date('2023-10-10T09:00:00Z'),
+                dueDate: new Date('2023-10-25T12:00:00Z'),
+                assignee: 'Charlie Davis',
             }
+        ];
 
-            designsMap[designId].models.push({
-                id,
-                urn,
-                isMainModel,
-                x_offset: x,
-                y_offset: y,
-                z_offset: z,
-                rotation,
-                reference_id: refId
-            });
-        });
+        res.json({
+            issues: issues,
+            status: 200,
+        })
 
-        res.json(Object.values(designsMap));
-    } catch (err) {
-        console.error('Erro ao ler composite-designs.csv:', err);
-        res.status(500).json({ error: 'Erro ao ler os composites salvos.' });
     }
-});
-
-
-
-router.post('/api/composite-designs', express.json(), async (req, res) => {
-    try {
-        const { name, primaryUrn, secondaryUrns } = req.body;
-
-        const baseId = `comp_${Date.now()}`;
-
-        // Modelo principal
-        const rows = [{
-            id: baseId,
-            name,
-            urn: primaryUrn,
-            isMainModel: true,
-            x_offset: 0,
-            y_offset: 0,
-            z_offset: 0,
-            rotation: 0,
-            reference_id: ''
-        }];
-
-        // Modelos secundários
-        secondaryUrns.forEach((secondary, index) => {
-            rows.push({
-                id: `${baseId}_sec${index}`,
-                name,
-                urn: secondary.urn,
-                isMainModel: false,
-                x_offset: secondary.offset.x,
-                y_offset: secondary.offset.y,
-                z_offset: secondary.offset.z,
-                rotation: 0,
-                reference_id: baseId
-            });
-        });
-
-        const writeHeaderIfNeeded = !fs.existsSync(csvPath);
-        if (writeHeaderIfNeeded) {
-            const header = 'id,name,urn,isMainModel,x_offset,y_offset,z_offset,rotation,reference_id\n';
-            fs.writeFileSync(csvPath, header, 'utf8');
-        }
-
-        for (const row of rows) {
-            const line = [
-                row.id,
-                `"${row.name}"`,
-                row.urn,
-                row.isMainModel,
-                row.x_offset,
-                row.y_offset,
-                row.z_offset,
-                row.rotation,
-                row.reference_id || ''
-            ].join(',') + '\n';
-            fs.appendFileSync(csvPath, line, 'utf8');
-        }
-
-        res.status(201).json({ id: baseId, name, models: rows });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+    catch(error){
+        console.error('Erro ao ler o arquivo CSV:', error);
+        res.status(500).send('Erro ao obter issues');
+        return;
     }
-});
+})
 
 
 

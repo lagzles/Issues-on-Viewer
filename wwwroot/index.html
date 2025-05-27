@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/style.css">
+    <link rel="stylesheet" href="/main.css">
+    <title>APS: Issues Viewer</title>
+</head>
+
+<body>
+    <div id="header">
+        <span class="title">Issues Viewer</span>
+        <!-- <select name="models" id="models"></select> -->
+        <input style="display: none" type="file" id="input">
+    </div>
+    <div id="sidebar">
+        <p><strong>Modelos disponíveis</strong></p>
+        <button id="clear-viewer" title="Clear Viewer">Limpar Viewer</button>
+        <button id="upload" title="Upload New Model">Upload</button>
+        <div id="model-list"></div>
+    </div>
+    <div id="issue-detail-popup" style="
+        display: none;
+        position: absolute;
+        top: 50px;
+        right: 50px;
+        width: 300px;
+        background: white;
+        border: 1px solid #ccc;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        padding: 15px;
+        z-index: 1000;
+        font-family: Arial, sans-serif;
+    ">
+        <button id="close-issue-popup" style="float: right;">✖</button>
+        <h3 id="popup-issue-name"></h3>
+        <p id="popup-issue-description"></p>
+        <p><strong>Status:</strong> <span id="popup-issue-status"></span></p>
+        <p><strong>Severity:</strong> <span id="popup-issue-severity"></span></p>
+        <p><strong>Location:</strong> <span id="popup-issue-location"></span></p>
+        <p><strong>Assignee:</strong> <span id="popup-issue-assignee"></span></p>
+        <p><strong>Due Date:</strong> <span id="popup-issue-due"></span></p>
+    </div>
+
+    <div id="preview"></div>
+    <div id="overlay"></div>
+    <script src="https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/viewer3D.js"></script>
+    <script src="/main.js" type="module"></script>
+</body>
+
+</html>
