@@ -81,7 +81,10 @@ class IssueManagerPanel extends Autodesk.Viewing.UI.DockingPanel {
 
     setTimeout(async () => {
         await this.getIssues();
+        this.initDragInteraction();
      }, 0);
+
+
   }
 
     initialize() {
@@ -141,9 +144,6 @@ class IssueManagerPanel extends Autodesk.Viewing.UI.DockingPanel {
     destroy() {
 
         this.removeMeshes();
-        if (this.container?.parentNode) {
-            this.container.parentNode.removeChild(this.container);
-        }
         if (typeof this.uninitialize === 'function') {
             this.uninitialize();
         }
@@ -179,6 +179,16 @@ class IssueManagerPanel extends Autodesk.Viewing.UI.DockingPanel {
         if (this.cameraCallback) {
             this.viewer.removeEventListener(Autodesk.Viewing.CAMERA_CHANGE_EVENT, this.cameraCallback);
             this.cameraCallback = null;
+        }
+
+        if (this.onMeshClick) {
+            this.viewer.canvas.removeEventListener('click', this.onMeshClick);
+            this.onMeshClick = null;
+        }
+
+        if (this.boundOnPointerDown) {
+            this.viewer.container.removeEventListener('pointerdown', this.boundOnPointerDown);
+            this.boundOnPointerDown = null;
         }
 
 
@@ -320,7 +330,7 @@ class IssueManagerPanel extends Autodesk.Viewing.UI.DockingPanel {
         const distance = 5;         // distância à frente
         const spread = 2;           // raio de espalhamento no plano
         const centerPos = cameraPos.clone().add(cameraDir.multiplyScalar(distance));
-
+        
         issues.forEach((issue, index) => {
             const angle = (index / issues.length) * 2 * Math.PI; // distribui em círculo
             const offsetRight = cameraRight.clone().multiplyScalar(spread * Math.cos(angle));
@@ -337,6 +347,7 @@ class IssueManagerPanel extends Autodesk.Viewing.UI.DockingPanel {
             mesh.name = `issue-${issue.name}-${issue.id}`;
             mesh.userData = {
                 isIssue: true,
+                issue: issue
             }
 
             viewer.overlays.addMesh(mesh, overlayName);
@@ -376,10 +387,153 @@ class IssueManagerPanel extends Autodesk.Viewing.UI.DockingPanel {
             });
         };
 
+        this.onMeshClick = (event) => {
+            const mesh = this.getIntersectedMesh(event);
+            if (mesh && mesh.userData.isIssue) {
+                const issue = mesh.userData.issue;
+                if(issue){
+                    this.showIssuePopup(issue);
+                }
+            }
+
+        }
+
         // Salvar a função para poder remover depois
         this.cameraCallback = updatePositions;
         this.viewer.addEventListener(Autodesk.Viewing.CAMERA_CHANGE_EVENT, this.cameraCallback);
+        // this.viewer.canvas.addEventListener('click', this.onMeshClick);
+
+        // this.boundOnPointerDown  = this.onPointerDown.bind(this);
+        // // this.viewer.impl.canvas.addEventListener('click', this.onMeshClick);
+        // this.viewer.container.addEventListener('pointerdown', this.boundOnPointerDown );
+        
+
     }
+
+    initDragInteraction() {
+        this.selectedMeshForAction = null;
+
+        
+        // this.boundPointerMove = this.onPointerMove.bind(this);
+        this.boundPointerDown = this.onPointerDown.bind(this);
+
+        // this.viewer.impl.canvas.addEventListener('pointermove', this.boundPointerMove);
+        this.viewer.impl.canvas.addEventListener('pointerdown', this.boundPointerDown);
+
+        this.currentHoveredMesh = null;
+
+    }
+
+    onPointerDown(event) {
+        const clickedMesh = this.getMeshNearCursor(event);
+
+        if (clickedMesh) {
+            if (clickedMesh.userData?.isIssue) {
+                const issue = clickedMesh.userData.issue;
+                this.showIssuePopup(issue);
+            }
+        }
+    }
+
+    getMeshNearCursor(event) {
+        const clickX = event.clientX;
+        const clickY = event.clientY;
+
+        const canvasBounds = this.viewer.container.getBoundingClientRect();
+
+        for (const mesh of this.issue_meshes) {
+            const pos = mesh.position.clone();
+            pos.project(this.viewer.impl.camera);
+
+            const screenX = (pos.x + 1) / 2 * canvasBounds.width + canvasBounds.left;
+            const screenY = (-pos.y + 1) / 2 * canvasBounds.height + canvasBounds.top;
+
+            // Calcular um ponto próximo (ex.: deslocado no eixo X)
+            const offsetPos = mesh.position.clone().add(new THREE.Vector3(mesh.geometry.boundingSphere.radius, 0, 0));
+            offsetPos.project(this.viewer.impl.camera);
+
+            const offsetScreenX = (offsetPos.x + 1) / 2 * canvasBounds.width + canvasBounds.left;
+            const offsetScreenY = (-offsetPos.y + 1) / 2 * canvasBounds.height + canvasBounds.top;
+
+            // Distância projetada em pixels → tamanho visual
+            const detectionRadius = Math.hypot(offsetScreenX - screenX, offsetScreenY - screenY);
+
+            // Tolerância extra mínima para não ficar muito pequeno
+            const finalRadius = Math.max(detectionRadius, 10); // pelo menos 10px
+
+            const distanceToClick = Math.hypot(screenX - clickX, screenY - clickY);
+
+            if (distanceToClick <= finalRadius) {
+                return mesh; // encontrou mesh clicado
+            }
+        }
+
+        return null; // nenhum mesh próximo
+    }
+
+    // onPointerMove(event) {
+    //     const hoveredMesh = this.getMeshNearCursor(event);
+    //     console.log("hoveredMesh", hoveredMesh);
+
+    //     if (this.currentHoveredMesh && this.currentHoveredMesh !== hoveredMesh) {
+    //         if (this.currentHoveredMesh.material && this.currentHoveredMesh.material.emissive) {
+    //             this.currentHoveredMesh.material.emissive.set(0x000000);
+    //         }
+    //         this.viewer.impl.invalidate(true);
+    //         this.currentHoveredMesh = null;
+    //     }
+
+    //     if (hoveredMesh) {
+    //         if (hoveredMesh.material && hoveredMesh.material.emissive) {
+    //             hoveredMesh.material.emissive.set(0x555555);
+    //         }
+    //         this.viewer.impl.invalidate(true);
+    //         this.currentHoveredMesh = hoveredMesh;
+    //     }
+    // }
+
+
+    onPointerDownBkp(event) {
+        const screenPoint = {
+            x: event.clientX,
+            y: event.clientY
+        };
+        const viewerRect = this.viewer.container.getBoundingClientRect();
+        const hitTest = this.viewer.impl.hitTest(
+            screenPoint.x - viewerRect.left,
+            screenPoint.y - viewerRect.top,
+            true
+        );
+
+        if (hitTest?.object && hitTest.object.userData?.isIssue) {
+            const issue = hitTest.object.userData.issueData;
+            this.showIssuePopup(issue);
+            return;
+        }
+
+        // (mantenha suas outras verificações de pushpin aqui se precisar)
+    }
+
+
+    getIntersectedMesh(event) {
+        const viewer = this.viewer;
+        const canvasBounds = viewer.impl.canvas.getBoundingClientRect();
+
+        const x = ((event.clientX - canvasBounds.left) / canvasBounds.width) * 2 - 1;
+        const y = -((event.clientY - canvasBounds.top) / canvasBounds.height) * 2 + 1;
+
+        const pointer = new THREE.Vector2(x, y);
+        const raycaster = new THREE.Raycaster();
+        
+        // USE a câmera do viewer diretamente, ela já é THREE.PerspectiveCamera
+        raycaster.setFromCamera(pointer, viewer.impl.camera);
+
+        const meshes = this.issueMeshes || [];
+
+        const intersects = raycaster.intersectObjects(meshes, true);
+        return intersects.length > 0 ? intersects[0].object : null;
+    }
+
 
 
 
