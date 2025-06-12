@@ -15,7 +15,8 @@ router.get('/api/models', async function (req, res, next) {
         const objects = await listObjects();
         res.json(objects.map(o => ({
             name: o.objectKey,
-            urn: urnify(o.objectId)
+            urn: urnify(o.objectId),
+            urnOriginal: o.objectId
         })));
     } catch (err) {
         next(err);

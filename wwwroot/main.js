@@ -41,9 +41,45 @@ async function setupModelSelection(viewer) {
             // const model_four = models[3];
             // const model_five = models[4];
     
-            loadUrnToViewer(model_one.urn, viewer);
-            loadUrnToViewer(model_two.urn, viewer);
-            loadUrnToViewer(model_three.urn, viewer);
+            // loadUrnToViewer(model_one.urn, viewer);
+            // loadUrnToViewer(model_two.urn, viewer);
+            // loadUrnToViewer(model_three.urn, viewer);
+
+            // const metadata = await fetch(`https://developer.api.autodesk.com/modelderivative/v2/designdata/${model_one.urnOriginal}/metadata`, 
+            //     {
+            //         headers:{
+            //             Authorization: `Bearer ${await getMyAccesToken()}`
+            //         }
+            //     })
+
+            // console.log('Metadata for model:', await metadata.json());
+            const token = await getMyAccesToken();
+            console.log('Access Token:', token);
+
+            const metadata2 = await fetch(`https://developer.api.autodesk.com/modelderivative/v2/designdata/${model_one.urn}/metadata`, 
+                {
+                    headers:{
+                        Authorization: `Bearer ${token.access_token}`
+                    }
+                })
+
+            const response = await metadata2.json();
+                
+            console.log('Metadata for model:', response);
+
+            const guid = response.data.metadata[0].guid;
+            console.log('GUID:', guid);
+
+            const metadata3 = await fetch(`https://developer.api.autodesk.com/modelderivative/v2/designdata/${model_one.urn}/metadata/${guid}/properties`, 
+            {
+                headers:{
+                    Authorization: `Bearer ${token.access_token}`
+                }
+            })
+
+            console.log('Metadata for model:', await metadata3.json());
+
+            
             // loadUrnToViewer(model_four.urn, viewer);
             // loadUrnToViewer(model_five.urn, viewer);
         }
@@ -104,9 +140,41 @@ function clearNotification() {
 
 let loadedUrns = new Map();
 
+async function getModelMetadata(urn){
+
+    const token = await getMyAccesToken();
+    console.log('Access Token:', token);
+
+    const metadata2 = await fetch(`https://developer.api.autodesk.com/modelderivative/v2/designdata/${urn}/metadata`, 
+        {
+            headers:{
+                Authorization: `Bearer ${token.access_token}`
+            }
+        })
+
+    const response = await metadata2.json();
+        
+    console.log('Metadata for model:', response);
+
+    const guid = response.data.metadata[0].guid;
+    console.log('GUID:', guid);
+
+    const metadata3 = await fetch(`https://developer.api.autodesk.com/modelderivative/v2/designdata/${urn}/metadata/${guid}/properties`, 
+    {
+        headers:{
+            Authorization: `Bearer ${token.access_token}`
+        }
+    })
+
+    console.log('Metadata for model:', await metadata3.json());
+
+}
+
 async function loadUrnToViewer(urn, viewer){
     try {
         showNotification(`Loading model ${urn}...`);
+
+        await getModelMetadata(urn);
         
         const accessToken = await getMyAccesToken();
         if (!accessToken) {
