@@ -142,17 +142,32 @@ export default class CreatePushpinExtension extends Autodesk.Viewing.Extension {
     selectPushpin(id) {
         if (this.selectedPushpin) {
             const prev = this.pushpins[this.selectedPushpin];
-            if (prev) prev.element.style.backgroundColor = '#ff0000';
+            if (prev){
+                this.colorpushpin(this.selectedPushpin, '#ff0000'); 
+            } 
+
+            const samePushpin = this.selectedPushpin === id;
+
+            console.log('Pushpin descelecionado:', this.selectedPushpin);
+            this.selectedPushpin = null;
+
+            if(samePushpin) {
+                return; 
+            }
         }
 
         this.selectedPushpin = id;
 
-        const current = this.pushpins[id];
-        if (current) {
-            current.element.style.backgroundColor = '#00aaff';
-        }
+        this.colorpushpin(id, '#00aaff'); // Muda a cor do pushpin selecionado
 
         console.log('Pushpin selecionado:', id);
+    }
+
+    colorpushpin(id, color){
+        const current = this.pushpins[id];
+        if (current) {
+            current.element.style.backgroundColor = color;
+        }
     }
 
     removeSelectedPushpin() {
@@ -204,6 +219,9 @@ export default class CreatePushpinExtension extends Autodesk.Viewing.Extension {
 
     startDrag(e, id) {
         this.isDragging = true;
+        this.colorpushpin(id, '#00aaff'); // Muda a cor do pushpin selecionado
+
+
         const onMove = (moveEvent) => {
             const viewerRect = this.viewer.container.getBoundingClientRect();
             const screenPoint = {
@@ -227,6 +245,7 @@ export default class CreatePushpinExtension extends Autodesk.Viewing.Extension {
             this.isDragging = false;
             window.removeEventListener('pointermove', onMove);
             window.removeEventListener('pointerup', onUp);
+            this.colorpushpin(id, '#ff0000'); // Muda a cor do pushpin selecionado
         };
 
         window.addEventListener('pointermove', onMove);
