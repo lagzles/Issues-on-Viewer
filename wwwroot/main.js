@@ -3,8 +3,8 @@ import { initViewer, loadModel, getMyAccesToken } from './viewer.js';
 initViewer(document.getElementById('preview')).then(viewer => {
     setupModelSelection(viewer);
     setupListMetadata(viewer);
-    // setupModelUpload(viewer);
-    setupClearViewerButton(viewer);
+    setupModelUpload(viewer);
+    // setupClearViewerButton(viewer);
 });
 
 async function setupClearViewerButton(viewer) {
@@ -42,9 +42,9 @@ async function setupModelSelection(viewer) {
             // const model_four = models[3];
             // const model_five = models[4];
     
-            loadUrnToViewer(model_one.urn, viewer);
-            loadUrnToViewer(model_two.urn, viewer);
-            loadUrnToViewer(model_three.urn, viewer);
+            // loadUrnToViewer(model_one.urn, viewer);
+            // loadUrnToViewer(model_two.urn, viewer);
+            // loadUrnToViewer(model_three.urn, viewer);
             // loadUrnToViewer(model_four.urn, viewer);
             // loadUrnToViewer(model_five.urn, viewer);
         }

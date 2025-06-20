@@ -64,6 +64,37 @@ service.deleteObject = async (objectKey) => {
     await ossClient.deleteObject(APS_BUCKET, objectKey, { accessToken });
 };
 
+service.translateObject = async (urn, rootFilename) => { //Add commentMore actions
+    const accessToken = await getInternalToken();
+    const job = await modelDerivativeClient.startJob({
+        input: {
+            urn,
+            compressedUrn: !!rootFilename,
+            rootFilename
+        },
+        output: {
+            formats: [
+                {
+                    type: OutputType.Svf2,
+                    views: [View._3d, View._2d],
+                    advanced: {
+                        generateMasterViews: true,
+                        coordinationModel: true,
+                        hiddenObjects: false,
+                        basicMaterialProperties: true,
+                        autodeskMaterialProperties: true,
+                        buildingStoreys: "show",
+                        spaces: "show",
+                        includeMetadata: true,
+                        exportFileStructure: "single"
+                    }
+                }
+            ]
+        }
+    }, { accessToken });
+    return job.result;
+};
+
 service.getManifest = async (urn) => {
     const accessToken = await getInternalToken();
     try {
