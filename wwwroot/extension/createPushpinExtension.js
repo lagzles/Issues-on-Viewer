@@ -88,10 +88,26 @@ export default class CreatePushpinExtension extends Autodesk.Viewing.Extension {
 
             if (hitTest) {
                 const position = hitTest.intersectPoint;
-                const viewpointId = Date.now();
+                let viewpointId = Date.now();
+                if (   Object.keys(this.pushpins).length   === 0) {
+                    for (let z = 0; z < 20; z++) {
+                        for (let x = 0; x < 10; x++) {
+                            for (let y = 0; y < 8; y++) {
+                                let pushpinPosition = new THREE.Vector3(
+                                    position.x + (x * 10), 
+                                    position.y + (y * 10),
+                                    position.z + (z * 7)
+                                );
 
-                this.addPushpin(position, viewpointId);
-               
+                                viewpointId = Date.now() + x*3 + y*2 +y +x; // Unique ID for each pushpin
+                                this.createMeshes(viewpointId, pushpinPosition, '#ff0000');
+                                // this.addPushpin(pushpinPosition, viewpointId);
+                            }
+                        }
+                    }
+                }else{
+                    this.addPushpin(position, viewpointId);
+                }
             }
 
             this.viewer.container.removeEventListener('click', onClick);
@@ -137,6 +153,57 @@ export default class CreatePushpinExtension extends Autodesk.Viewing.Extension {
         };
 
         this.updatePushpinsPosition();
+    }
+
+    createMeshes(pushpinId, position, color = '#ff0000') {
+        const tamanho = 5
+        const headHeight = tamanho * 0.45;
+        const torsoHeight = tamanho * 0.95;
+        const legLength = tamanho * 0.4;
+        const limbRadius = tamanho * 0.035;
+        const headRadius = headHeight / 2;
+
+        if (!this.viewer.overlays.hasScene('pushpin-overlay')) {
+            this.viewer.overlays.addScene('pushpin-overlay');
+        }
+
+        const material = new THREE.MeshPhongMaterial({
+          specular: new THREE.Color(color),
+          side: THREE.DoubleSide,
+          reflectivity: 0.0,
+          color
+        })
+    
+        const materials = this.viewer.impl.getMaterials()
+    
+        materials.addMaterial(
+          color.toString(16),
+          material,
+          true)
+
+        // Cabeça
+        const headGeometry = new THREE.SphereBufferGeometry(headRadius, 32, 32);
+        const head = new THREE.Mesh(headGeometry, material);
+        head.position.set(position.x, position.y, position.z + torsoHeight + headRadius + legLength);
+        head.name = pushpinId;
+        head.userData = { isPushpin: true };
+        this.viewer.impl.scene.add(head);
+
+        // const torsoGeometry = new THREE.CylinderBufferGeometry(limbRadius, limbRadius, torsoHeight, 32);
+        // const torso = new THREE.Mesh(torsoGeometry, material);
+        // torso.position.set(position.x, position.y, position.z + torsoHeight / 2 + legLength);
+        // torso.rotation.x = Math.PI / 2;
+        // torso.name = pushpinId;
+        // torso.userData = { isPushpin: true };
+
+        // this.viewer.impl.scene.add(torso);
+        this.viewer.impl.sceneUpdated(true);
+
+        this.pushpins[pushpinId] = {
+            id: pushpinId,  
+            position: position,
+            element: head,
+        }
     }
 
     selectPushpin(id) {
@@ -199,22 +266,22 @@ export default class CreatePushpinExtension extends Autodesk.Viewing.Extension {
     updatePushpinsPosition() {
         const cameraPos = this.viewer.navigation.getCamera().position;
 
-        Object.values(this.pushpins).forEach(pin => {
-            const screenPoint = this.viewer.worldToClient(pin.position);
+        // Object.values(this.pushpins).forEach(pin => {
+        //     const screenPoint = this.viewer.worldToClient(pin.position);
 
-            // Cálculo da distância da câmera ao pushpin
-            const distance = cameraPos.distanceTo(pin.position);
+        //     // Cálculo da distância da câmera ao pushpin
+        //     const distance = cameraPos.distanceTo(pin.position);
 
-            // Ajuste de escala — quanto maior a distância, menor o pushpin
-            const scale = Math.max(0.5, Math.min(2, 100 / distance)); // Limita o mínimo e máximo
+        //     // Ajuste de escala — quanto maior a distância, menor o pushpin
+        //     const scale = Math.max(0.5, Math.min(2, 100 / distance)); // Limita o mínimo e máximo
 
-            const size = 12 * scale;
+        //     const size = 12 * scale;
 
-            pin.element.style.width = `${size}px`;
-            pin.element.style.height = `${size}px`;
-            pin.element.style.left = `${screenPoint.x - size / 2}px`;
-            pin.element.style.top = `${screenPoint.y - size / 2}px`;
-        });
+        //     pin.element.style.width = `${size}px`;
+        //     pin.element.style.height = `${size}px`;
+        //     pin.element.style.left = `${screenPoint.x - size / 2}px`;
+        //     pin.element.style.top = `${screenPoint.y - size / 2}px`;
+        // });
     }
 
     startDrag(e, id) {
