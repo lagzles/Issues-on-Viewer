@@ -1,6 +1,7 @@
 
 import ShowIssuesExtension from './extension/showIssuesExtension.js';
 import CreatePushpinExtension from './extension/createPushpinExtension.js';
+import CustomSectionExtension from './extension/customSectionExtension.js';
 
 
 export async function getMyAccesToken(){
@@ -38,6 +39,7 @@ export function initViewer(container) {
             viewer.start();
             viewer.loadExtension('ShowIssuesExtension', ShowIssuesExtension)
             viewer.loadExtension('CreatePushpinExtension', CreatePushpinExtension)
+            viewer.loadExtension('CustomSectionExtension', CustomSectionExtension)
             viewer.setTheme('light-theme');
             viewer.setBackgroundColor(255, 255, 255, 255, 255, 255);
             viewer.setLightPreset(0);

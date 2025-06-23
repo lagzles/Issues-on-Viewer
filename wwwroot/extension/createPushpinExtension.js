@@ -156,10 +156,11 @@ export default class CreatePushpinExtension extends Autodesk.Viewing.Extension {
     }
 
     createMeshes(pushpinId, position, color = '#ff0000') {
-        const tamanho = 5
-        const headHeight = tamanho * 0.45;
-        const torsoHeight = tamanho * 0.95;
-        const legLength = tamanho * 0.4;
+        const tamanho = 3
+        // const headHeight = tamanho * 0.45;
+        const headHeight = tamanho * 0.75;
+        const torsoHeight = tamanho * 0.95 * 0;
+        const legLength = tamanho * 0.4 * 0;
         const limbRadius = tamanho * 0.035;
         const headRadius = headHeight / 2;
 
