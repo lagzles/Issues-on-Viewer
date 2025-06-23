@@ -5,15 +5,37 @@ export default class CustomSectionExtension extends Autodesk.Viewing.Extension {
         this.sectionActive = false;
         this.sectionPoint = null;
         this.range = 5; // Default range in meters
+
+        this.pushpins = {};
+        this.raycaster = new THREE.Raycaster();
+        this.mouse = new THREE.Vector2();
+        this.hovered = null;
+        this.onMouseMove = this.onMouseMove.bind(this);
+        this.onClick = this.onClick.bind(this);
     }
 
     load() {
         // Create UI elements
+        if (!this.viewer.overlays.hasScene('pushpin-overlay')) {
+            this.viewer.overlays.addScene('pushpin-overlay');
+        }
+
+        this.viewer.canvas.addEventListener('mousemove', this.onMouseMove);
+        this.viewer.canvas.addEventListener('click', this.onClick);
+
         this.createToolbarButton();
         return true;
     }
 
     unload() {
+        this.viewer.canvas.removeEventListener('mousemove', this.onMouseMove);
+        this.viewer.canvas.removeEventListener('click', this.onClick);
+
+        if (this.viewer.overlays.hasScene('pushpin-overlay')) {
+            this.viewer.overlays.removeScene('pushpin-overlay');
+        }
+
+
         this.removeUI();
         return true;
     }
@@ -56,47 +78,56 @@ export default class CustomSectionExtension extends Autodesk.Viewing.Extension {
         }
     }
 
-    toggleSectionTool() {
-        this.sectionActive = !this.sectionActive;
-        
-        if (this.sectionActive) {
-            this.button.setState(Autodesk.Viewing.UI.Button.State.ACTIVE);
-            this.panel.setVisible(true);
-            this.viewer.setSelectionMode(Autodesk.Viewing.SelectionMode.MODEL);
-            
-            // Set up selection handler
-            this.selectionHandler = (ev) => {
-                const hitTest = this.viewer.clientToWorld(ev.clientX, ev.clientY, true);
-                if (hitTest && hitTest.point) {
-                    this.sectionPoint = hitTest.point;
-                    this.applySection(this.sectionPoint);
-                }
-            };
-            
-            this.viewer.container.addEventListener('click', this.selectionHandler);
-        } else {
-            this.button.setState(Autodesk.Viewing.UI.Button.State.INACTIVE);
-            this.panel.setVisible(false);
-            this.viewer.container.removeEventListener('click', this.selectionHandler);
-            this.clearSection();
+    onMouseMove(event) {
+        // const rect = this.viewer.canvas.getBoundingClientRect();
+
+        // this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        // this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+        // this.raycaster.setFromCamera(this.mouse, this.viewer.impl.camera);
+
+        // const meshes = Object.values(this.pushpins).map(p => p.mesh);
+
+        // const intersects = this.raycaster.intersectObjects(meshes, false);
+
+        // if (intersects.length > 0) {
+        //     const object = intersects[0].object;
+
+        //     if (this.hovered !== object) {
+        //         if (this.hovered) {
+        //             this.onHoverOut(this.hovered);
+        //         }
+        //         this.hovered = object;
+        //         this.onHoverIn(object);
+        //     }
+        // } else {
+        //     if (this.hovered) {
+        //         this.onHoverOut(this.hovered);
+        //         this.hovered = null;
+        //     }
+        // }
+    }
+
+    /** Efeito quando o mouse entra no mesh */
+    onHoverIn(object) {
+        object.currentHex = object.material.color.getHex();
+        object.material.color.setHex(0x00ff00); // Verde ao hover
+        this.viewer.impl.sceneUpdated(true);
+    }
+
+    /** Efeito quando o mouse sai do mesh */
+    onHoverOut(object) {
+        object.material.color.setHex(object.currentHex);
+        this.viewer.impl.sceneUpdated(true);
+    }
+
+    /** Click no pushpin */
+    onClick(event) {
+        if (this.hovered) {
+            const id = this.hovered.userData.id;
+            console.log('Pushpin clicado:', id);
+            alert(`Clicou no pushpin: ${id}`);
         }
-    }
-
-    applySection(point) {
-        // Create a plane for sectioning
-        const plane = new THREE.Plane();
-        
-        // Create top and bottom planes
-        const topPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), -point.z - this.range);
-        const bottomPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), point.z - this.range);
-        
-        // Apply sectioning
-        this.viewer.setCutPlanes([topPlane, bottomPlane]);
-    }
-
-    clearSection() {
-        this.viewer.setCutPlanes([]);
-        this.sectionPoint = null;
     }
 }
 
@@ -111,11 +142,12 @@ class CustomSectionPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.container.style.left = (options.x || 10) + 'px';
     this.container.style.top = (options.y || 10) + 'px';
     this.container.style.width = (options.width || 350) + 'px';
-    // this.container.style.height = (options.height || 250) + 'px';
+
     this.container.style.flex = '1'
     this.container.style.resize = 'none';
     this.container.classList.add('docking-panel-container-solid-color');
     this.footer=null;
+    this.range = 5;
 
     this.finishedSearching = false;
 
@@ -144,15 +176,29 @@ class CustomSectionPanel extends Autodesk.Viewing.UI.DockingPanel {
         this.resultsCount.style.color = '#666';
         this.body.appendChild(this.resultsCount);
 
-        // Results list
-        this.resultsList = document.createElement('div');
-        this.resultsList.className = 'results-list';
-        this.resultsList.style.maxHeight = '200px';
-        this.resultsList.style.overflowY = 'auto';
-        this.resultsList.style.border = '1px solid #ddd';
-        this.resultsList.style.padding = '5px';
-        this.body.appendChild(this.resultsList);
+        this.heightInput = document.createElement('input');
+        this.heightInput.type = 'number';
+        this.heightInput.placeholder = 'Height (m)';
+        this.heightInput.style.width = '100%';
+        this.heightInput.style.marginBottom = '10px';
+        this.heightInput.style.padding = '6px';
+        this.heightInput.style.border = '1px solid #ccc';
+        this.heightInput.style.borderRadius = '4px';
+        this.heightInput.style.boxSizing = 'border-box';
+        this.heightInput.value = this.range;
+        this.heightInput.onchange = () => {
+            const newRange = parseFloat(this.heightInput.value);
+            if (!isNaN(newRange) && newRange > 0) {
+                this.range = newRange;
+            }
 
+            if(this.sectionPoint) {
+                this.applySection(this.sectionPoint);
+            }
+        };
+        this.body.appendChild(this.heightInput);
+
+       
         // Footer with close button
         const footer = document.createElement('div');
         footer.style.padding = '10px';
@@ -175,7 +221,7 @@ class CustomSectionPanel extends Autodesk.Viewing.UI.DockingPanel {
 
 
         const clearButton = document.createElement('button');
-        clearButton.textContent = 'Select';
+        clearButton.textContent = 'Limpar';
         clearButton.style.padding = '6px 12px';
         clearButton.style.border = '1px solid #ccc';
         clearButton.style.borderRadius = '4px';
@@ -253,19 +299,12 @@ class CustomSectionPanel extends Autodesk.Viewing.UI.DockingPanel {
         // pegar model bounding box
         const bboxModel = this.viewer.model.getBoundingBox();
         const bbMinPt = bboxModel.min;
-        const mbbMxPt = bboxModel.max;
+        const bbMxPt = bboxModel.max;
 
-        const minPt = new THREE.Vector3( bbMinPt.x, bbMinPt.y, point.z - 3 ); //!<<< put your point here
-        const maxPt = new THREE.Vector3( mbbMxPt.x, mbbMxPt.y, point.z + 3 ); //!<<< put your point here
+        const minPt = new THREE.Vector3( bbMinPt.x, bbMinPt.y, point.z - this.range / 2.0 ); //!<<< put your point here
+        const maxPt = new THREE.Vector3( bbMxPt.x, bbMxPt.y, point.z + this.range / 2.0 ); //!<<< put your point here
 
-
-        let box = new THREE.Box3(minPt, maxPt);
-        let sectionExt = this.viewer.getExtension('Autodesk.Section');
-        sectionExt.setSectionBox(box);
-
-        return ;
-
-
+        
         const normals = [
             new THREE.Vector3(1, 0, 0), 
             new THREE.Vector3(0, 1, 0), 
@@ -294,6 +333,63 @@ class CustomSectionPanel extends Autodesk.Viewing.UI.DockingPanel {
         }
 
         this.viewer.setCutPlanes( cutPlanes );
+
+
+        this.createArrowMesh({ 
+            x: (minPt.x + maxPt.x) / 2,
+            y: (minPt.y + maxPt.y) / 2,
+            z: point.z - this.range * 2
+         }, 'up-arrow', 0x00ff00);
+
+         this.createArrowMesh({ 
+            x: (minPt.x + maxPt.x) / 2,
+            y: (minPt.y + maxPt.y) / 2,
+            z: point.z + this.range * 2
+         }, 'down-arrow', 0xff0000);
+
+
+    }
+
+    createArrowMesh(position, pushpinId, color = 0x00ff00) {
+
+        if (!this.viewer.overlays.hasScene('pushpin-overlay')) {
+            this.viewer.overlays.addScene('pushpin-overlay');
+        }
+
+        const tamanho = 5
+        const torsoHeight = tamanho;
+        const limbRadius = tamanho * 0.15;
+
+        const material = new THREE.MeshPhongMaterial({
+          specular: new THREE.Color(color),
+          side: THREE.DoubleSide,
+          reflectivity: 0.0,
+          color
+        })
+    
+        const materials = this.viewer.impl.getMaterials()
+    
+        materials.addMaterial(
+          color.toString(16),
+          material,
+          true)
+
+
+        const torsoGeometry = new THREE.CylinderBufferGeometry(limbRadius, limbRadius, torsoHeight, 32);
+        const torso = new THREE.Mesh(torsoGeometry, material);
+        torso.position.set(position.x, position.y, position.z + torsoHeight / 2 );
+        torso.rotation.x = Math.PI / 2;
+        torso.name = pushpinId;
+        torso.userData = { isPushpin: true };
+
+        this.viewer.impl.scene.add(torso);
+        this.viewer.impl.sceneUpdated(true);
+
+        this.extension.pushpins[pushpinId] = {
+            id: pushpinId,
+            position: position,
+            element: torso,
+        };
 
     }
 
