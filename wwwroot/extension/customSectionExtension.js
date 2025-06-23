@@ -334,18 +334,17 @@ class CustomSectionPanel extends Autodesk.Viewing.UI.DockingPanel {
 
         this.viewer.setCutPlanes( cutPlanes );
 
+        // this.createArrowMesh({ 
+        //     x: (minPt.x + maxPt.x) / 2,
+        //     y: (minPt.y + maxPt.y) / 2,
+        //     z: point.z - this.range * 2
+        //  }, 'up-arrow', 0x00ff00);
 
-        this.createArrowMesh({ 
-            x: (minPt.x + maxPt.x) / 2,
-            y: (minPt.y + maxPt.y) / 2,
-            z: point.z - this.range * 2
-         }, 'up-arrow', 0x00ff00);
-
-         this.createArrowMesh({ 
-            x: (minPt.x + maxPt.x) / 2,
-            y: (minPt.y + maxPt.y) / 2,
-            z: point.z + this.range * 2
-         }, 'down-arrow', 0xff0000);
+        //  this.createArrowMesh({ 
+        //     x: (minPt.x + maxPt.x) / 2,
+        //     y: (minPt.y + maxPt.y) / 2,
+        //     z: point.z + this.range * 2
+        //  }, 'down-arrow', 0xff0000);
 
 
     }
@@ -391,6 +390,18 @@ class CustomSectionPanel extends Autodesk.Viewing.UI.DockingPanel {
             element: torso,
         };
 
+    }
+
+    restoreSectionBox(viewer, cutplanes) {
+        let box = new THREE.Box3();
+        for (const cutplane of cutplanes) {
+            const normal = new THREE.Vector3(cutplane[0], cutplane[1], cutplane[2]);
+            const offset = cutplane[3];
+            const pointOnPlane = normal.negate().multiplyScalar(offset);
+            box.expandByPoint(pointOnPlane);
+        }
+        const sectionExt = viewer.getExtension('Autodesk.Section');
+        sectionExt.setSectionBox(box);
     }
 
     clearSection() {
