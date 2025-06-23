@@ -33,13 +33,14 @@ export function initViewer(container) {
     return new Promise(function (resolve, reject) {
         Autodesk.Viewing.Initializer({ env: 'AutodeskProduction', getAccessToken }, function () {
             const config = {
-                extensions: ['Autodesk.DocumentBrowser', 'ShowIssuesExtension', 'CreatePushpinExtension']
+                extensions: ['Autodesk.DocumentBrowser', 'ShowIssuesExtension', 'CreatePushpinExtension', 'Autodesk.Section']
             };
             const viewer = new Autodesk.Viewing.GuiViewer3D(container, config);
             viewer.start();
             viewer.loadExtension('ShowIssuesExtension', ShowIssuesExtension)
             viewer.loadExtension('CreatePushpinExtension', CreatePushpinExtension)
             viewer.loadExtension('CustomSectionExtension', CustomSectionExtension)
+            viewer.loadExtension('Autodesk.Section');
             viewer.setTheme('light-theme');
             viewer.setBackgroundColor(255, 255, 255, 255, 255, 255);
             viewer.setLightPreset(0);
